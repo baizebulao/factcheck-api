@@ -51,10 +51,8 @@ const ALLOWED_ORIGINS = [
 ];
 
 function setCors(res, origin) {
-  // Chrome 扩展的 origin 是 chrome-extension://<id>
-  if (origin && (ALLOWED_ORIGINS.includes(origin) || origin.startsWith('chrome-extension://'))) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
+  // 公开 API，允许所有来源（有限流保护）
+  res.setHeader('Access-Control-Allow-Origin', origin || '*');
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
