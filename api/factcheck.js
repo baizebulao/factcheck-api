@@ -9,9 +9,9 @@
  * 2. 自带 Key 模式: 用户传自己的 API Key，不限次数
  */
 
-import { getAvailableModels, MODELS, resolveUserModels, getApiKey } from '../lib/models.js';
-import { searchRelatedNews, assessEvidence, assessSource } from '../lib/search.js';
-import { multiModelAnalyze, crossValidate } from '../lib/cross-validate.js';
+import { getAvailableModels, MODELS, resolveUserModels, getApiKey } from './lib/models.js';
+import { searchRelatedNews, assessEvidence, assessSource } from './lib/search.js';
+import { multiModelAnalyze, crossValidate } from './lib/cross-validate.js';
 
 // ============================================================
 // 限流（内存级，Vercel 实例内有效）
