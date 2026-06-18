@@ -1,0 +1,11 @@
+{
+  "name": "factcheck-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "新闻事实核查 API — 多模型交叉验证 + 搜索证据链",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {}
+}
