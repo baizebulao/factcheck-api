@@ -1,31 +1,116 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>FactCheck API 测试</title></head>
-<body style="font-family:sans-serif;padding:20px;">
-<h3>双模型交叉验证测试</h3>
-<button id="btn">开始测试</button>
-<pre id="result" style="background:#f5f5f5;padding:16px;margin-top:16px;white-space:pre-wrap;font-size:13px;">等待中...</pre>
+<head><meta charset="UTF-8"><title>FactCheck API 测试</title>
+<style>
+body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; }
+button { padding: 10px 20px; margin: 5px 5px 5px 0; cursor: pointer; border: none; border-radius: 6px; font-size: 14px; }
+.btn-real { background: #4caf50; color: white; }
+.btn-fake { background: #f44336; color: white; }
+.btn-misleading { background: #ff9800; color: white; }
+pre { background: #f5f5f5; padding: 16px; margin-top: 16px; white-space: pre-wrap; font-size: 12px; border-radius: 8px; max-height: 600px; overflow-y: auto; }
+h3 { margin-top: 24px; }
+</style>
+</head>
+<body>
+<h2>FactCheck API 双模型交叉验证测试</h2>
+
+<p>点击下方按钮，测试不同类型新闻的核查效果：</p>
+
+<button class="btn-real" onclick="testReal()">测试1: 真实新闻（新华社）</button>
+<button class="btn-fake" onclick="testFake()">测试2: 虚假新闻</button>
+<button class="btn-misleading" onclick="testMisleading()">测试3: 误导性新闻</button>
+
+<pre id="result">选择测试类型后查看结果...</pre>
+
 <script>
-document.getElementById('btn').onclick = async function() {
+async function callAPI(title, content, source, date) {
   var pre = document.getElementById('result');
   pre.textContent = '正在调用，双模型并行分析约需5-10秒...';
   try {
     var resp = await fetch('/api/factcheck', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        title: '中国成功发射神舟十九号载人飞船',
-        content: '据中国载人航天工程办公室消息，北京时间2025年10月30日，搭载神舟十九号载人飞船的长征二号F遥十九运载火箭在酒泉卫星发射中心点火发射。约10分钟后，神舟十九号载人飞船与火箭成功分离，进入预定轨道，发射取得圆满成功。此次任务是我国载人航天工程进入空间站应用与发展阶段后的第4次载人飞行任务。',
-        source: '新华社',
-        publishDate: '2025-10-30'
-      })
+      body: JSON.stringify({ title, content, source, publishDate: date })
     });
     var data = await resp.json();
-    pre.textContent = JSON.stringify(data, null, 2);
+    pre.textContent = formatResult(data);
   } catch(e) {
-    pre.textContent = '错误: ' + e.message + '\n状态码: ' + (e.status || 'unknown');
+    pre.textContent = '错误: ' + e.message;
   }
-};
+}
+
+function formatResult(data) {
+  if (!data.success) return 'API错误: ' + JSON.stringify(data, null, 2);
+  var d = data.data;
+  var m = d.meta || {};
+  var lines = [];
+  lines.push('════════════════════════════════');
+  lines.push('最终评分: ' + d.confidence + '/100  判定: ' + d.verdict);
+  lines.push('总结: ' + d.summary);
+  lines.push('════════════════════════════════');
+  lines.push('');
+  if (m.models) {
+    lines.push('【模型交叉验证】');
+    m.models.forEach(function(mo) {
+      lines.push('  ' + mo.label + ': ' + mo.score + '分 (' + mo.verdict + ')');
+    });
+    lines.push('  共识度: ' + (d.verdictConsensus ? d.verdictConsensus.level : 'N/A') + ' (spread: ' + m.scoreSpread + ')');
+    lines.push('');
+  }
+  if (d.dimensions) {
+    lines.push('【多维度分析】');
+    Object.values(d.dimensions).forEach(function(dim) {
+      var range = dim.scoreRange ? ' [' + dim.scoreRange.min + '-' + dim.scoreRange.max + ']' : '';
+      lines.push('  ' + dim.icon + ' ' + dim.label + ': ' + dim.score + range);
+      lines.push('      ' + dim.note);
+    });
+    lines.push('');
+  }
+  if (d.suspicions && d.suspicions.length > 0) {
+    lines.push('【⚠️ 可疑点】');
+    d.suspicions.forEach(function(s) { lines.push('  • ' + s); });
+    lines.push('');
+  }
+  if (d.highlights && d.highlights.length > 0) {
+    lines.push('【✅ 可信亮点】');
+    d.highlights.forEach(function(h) { lines.push('  • ' + h); });
+    lines.push('');
+  }
+  if (d.sourceAssessment) {
+    lines.push('【来源评估】' + d.sourceAssessment.level + ' (' + d.sourceAssessment.score + ')');
+  }
+  if (m.adjustments && m.adjustments.length > 0) {
+    lines.push('【评分调整】');
+    m.adjustments.forEach(function(a) { lines.push('  ' + a); });
+  }
+  lines.push('');
+  lines.push('剩余免费次数: ' + (data.rateLimit ? data.rateLimit.remaining : 'N/A') + '/' + (data.rateLimit ? data.rateLimit.limit : 'N/A'));
+  return lines.join('\n');
+}
+
+function testReal() {
+  callAPI(
+    '中国成功发射神舟十九号载人飞船',
+    '据中国载人航天工程办公室消息，北京时间2025年10月30日，搭载神舟十九号载人飞船的长征二号F遥十九运载火箭在酒泉卫星发射中心点火发射。约10分钟后，神舟十九号载人飞船与火箭成功分离，进入预定轨道，发射取得圆满成功。此次任务是我国载人航天工程进入空间站应用与发展阶段后的第4次载人飞行任务。',
+    '新华社', '2025-10-30'
+  );
+}
+
+function testFake() {
+  callAPI(
+    '震惊！某知名饮料被查出含有致癌物质，已导致多人住院',
+    '据某自媒体爆料，一款畅销全国的饮料近日被内部人士曝光，其中含有国际禁用的致癌添加剂。据称已有超过200人因饮用该饮料后出现严重不适住院治疗。目前该饮料仍在各大超市正常销售，厂家尚未回应。知情人士透露，该添加剂可导致肝脏严重损伤，长期饮用致癌率高达80%。专家呼吁广大消费者立即停止购买。',
+    '某自媒体', '2026-06-18'
+  );
+}
+
+function testMisleading() {
+  callAPI(
+    '研究发现喝咖啡可以延长寿命20年',
+    '一项最新研究表明，每天喝三杯咖啡的人比不喝咖啡的人寿命长20年。研究跟踪了500名咖啡爱好者，发现他们的心血管疾病发病率显著降低。研究人员表示，咖啡中的抗氧化物质是关键。该研究已发表在知名期刊上。不过需要注意的是，该研究由某咖啡品牌赞助。',
+    '健康时报', '2026-06-15'
+  );
+}
 </script>
 </body>
 </html>
