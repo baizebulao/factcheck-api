@@ -146,8 +146,15 @@ const LOW_CREDIBILITY_PATTERNS = [
   /自媒体/i, /营销号/i, /unknown/i,
 ];
 
+// 权威来源名称（用于匹配 source 字段，非域名）
+const AUTHORITY_NAMES = [
+  '新华社', '人民日报', '中央电视台', '央视', 'CCTV', '中国新闻网', '中新社',
+  '光明日报', '环球时报', '中国经济网', '中国日报', '科技日报', '参考消息',
+  '澎湃新闻', '财新', '界面新闻', '第一财经',
+];
+
 /**
- * 评估来源域名信誉
+ * 评估来源域名/名称信誉
  */
 export function assessSource(domain) {
   if (!domain) return { level: 'unknown', score: 50 };
@@ -157,6 +164,13 @@ export function assessSource(domain) {
   // 检查是否在权威列表
   for (const auth of AUTHORITY_DOMAINS) {
     if (d.includes(auth)) {
+      return { level: 'authority', score: 90 };
+    }
+  }
+
+  // 检查权威来源名称（新华社、人民日报等）
+  for (const name of AUTHORITY_NAMES) {
+    if (d.includes(name)) {
       return { level: 'authority', score: 90 };
     }
   }

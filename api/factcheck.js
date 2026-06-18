@@ -122,9 +122,15 @@ export default async function handler(req, res) {
     modelConfigs = available.map(m => ({ id: m.id, apiKey: getApiKey(m.provider) }));
   }
 
-  // 单模型时用便宜快速的，多模型时取前3个（平衡成本和效果）
+  // 单模型时用便宜快速的，多模型时优先选不同厂商（真正的交叉验证）
   if (modelConfigs.length > 3) {
-    modelConfigs = modelConfigs.slice(0, 3);
+    // 按厂商分组，每厂取第一个（最便宜的）
+    const byProvider = {};
+    for (const m of modelConfigs) {
+      const provider = MODELS[m.id]?.provider || 'unknown';
+      if (!byProvider[provider]) byProvider[provider] = m;
+    }
+    modelConfigs = Object.values(byProvider).slice(0, 3);
   }
 
   const news = { title, content, source, publishDate, url };
@@ -136,6 +142,7 @@ export default async function handler(req, res) {
     const searchEvidence = {
       results: searchResult.results,
       evidence: assessEvidence(searchResult),
+      hasSearched: !!bingKey,  // 是否真正执行了搜索
     };
 
     // Step 2: 多模型并行分析

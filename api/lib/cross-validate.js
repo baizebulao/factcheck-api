@@ -170,8 +170,11 @@ function enrichSingleModel(result, searchEvidence) {
       adjustedScore = Math.min(100, adjustedScore + 5);
       adjustments.push('多源权威验证 (+5)');
     } else if (evi.strength === 'very_weak' || evi.strength === 'none') {
-      adjustedScore = Math.max(0, adjustedScore - 10);
-      adjustments.push('缺乏交叉验证 (-10)');
+      // 只有搜索确实跑了才扣分
+      if (searchEvidence.hasSearched) {
+        adjustedScore = Math.max(0, adjustedScore - 10);
+        adjustments.push('缺乏交叉验证 (-10)');
+      }
     }
   }
 
@@ -230,8 +233,12 @@ function mergeMultipleModels(results, searchEvidence) {
       adjustedScore = Math.min(100, adjustedScore + 4);
       adjustments.push(`搜索证据：${evi.label} (+4)`);
     } else if (evi.strength === 'very_weak' || evi.strength === 'none') {
-      adjustedScore = Math.max(0, adjustedScore - 8);
-      adjustments.push(`搜索证据：${evi.label} (-8)`);
+      // 只有搜索引擎确实跑了但没找到结果才扣分
+      // searchEvidence.hasSearched 为 false 说明根本没配搜索 API，不扣分
+      if (searchEvidence.hasSearched) {
+        adjustedScore = Math.max(0, adjustedScore - 8);
+        adjustments.push(`搜索证据：${evi.label} (-8)`);
+      }
     }
   }
 
