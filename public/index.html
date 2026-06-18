@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>FactCheck API 测试</title></head>
+<body style="font-family:sans-serif;padding:20px;">
+<h3>双模型交叉验证测试</h3>
+<button id="btn">开始测试</button>
+<pre id="result" style="background:#f5f5f5;padding:16px;margin-top:16px;white-space:pre-wrap;font-size:13px;">等待中...</pre>
+<script>
+document.getElementById('btn').onclick = async function() {
+  var pre = document.getElementById('result');
+  pre.textContent = '正在调用，双模型并行分析约需5-10秒...';
+  try {
+    var resp = await fetch('/api/factcheck', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        title: '中国成功发射神舟十九号载人飞船',
+        content: '据中国载人航天工程办公室消息，北京时间2025年10月30日，搭载神舟十九号载人飞船的长征二号F遥十九运载火箭在酒泉卫星发射中心点火发射。约10分钟后，神舟十九号载人飞船与火箭成功分离，进入预定轨道，发射取得圆满成功。此次任务是我国载人航天工程进入空间站应用与发展阶段后的第4次载人飞行任务。',
+        source: '新华社',
+        publishDate: '2025-10-30'
+      })
+    });
+    var data = await resp.json();
+    pre.textContent = JSON.stringify(data, null, 2);
+  } catch(e) {
+    pre.textContent = '错误: ' + e.message + '\n状态码: ' + (e.status || 'unknown');
+  }
+};
+</script>
+</body>
+</html>
